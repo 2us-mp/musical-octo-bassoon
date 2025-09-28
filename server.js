@@ -2,35 +2,36 @@ import express from "express";
 import bodyParser from "body-parser";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
+import cors from "cors";  // <--- ADD THIS
 
 dotenv.config();
 const app = express();
+
+app.use(cors());          // <--- FIX: allow frontend to connect
 app.use(bodyParser.json());
 
-// Injected company knowledge
+// Movie AI context
 const companyContext = `
 You are Movie, the AI support bot for 2+ Movie Productions LLC.
-You MUST always introduce yourself as Movie.
-Company Details:
+Always introduce yourself as Movie.
+Company:
 - Name: 2+ Movie Productions LLC
 - Tagline: "Stories That Move the World"
-- About: Independent film company producing content for YouTube, TikTok, and other platforms.
 - Links:
-   Watch Now: https://watchfree.2movie-productions.com
-   AI Bot: https://chat.2movie-productions.com
+   Watch: https://watchfree.2movie-productions.com
+   Chat: https://chat.2movie-productions.com
    Email: 2.movieproductions.co@gmail.com
 - FAQ:
    Q: Where can I watch your productions?
-   A: On YouTube and TikTok. Use the "Watch Now" button on our site.
+   A: On YouTube and TikTok via the "Watch Now" button.
    Q: Do you release full-length movies?
-   A: We focus on short films but are working on larger projects.
-- Contact: AI bot, email support only. Phone support unavailable.
+   A: We focus on short films but are working on bigger projects.
+- Contact: AI bot + email support. Phone not available.
 `;
 
-// API route for chat
+// Chat route
 app.post("/chat", async (req, res) => {
   const { message } = req.body;
-
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -39,7 +40,7 @@ app.post("/chat", async (req, res) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini", // can swap with gpt-4o or gpt-5
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: companyContext },
           { role: "user", content: message }
@@ -48,10 +49,10 @@ app.post("/chat", async (req, res) => {
     });
 
     const data = await response.json();
-    res.json({ reply: data.choices[0].message.content });
+    res.json({ reply: data.choices?.[0]?.message?.content || "⚠️ Movie is silent." });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Something went wrong." });
+    res.status(500).json({ error: "Server error. Movie failed to reply." });
   }
 });
 
